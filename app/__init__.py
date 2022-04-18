@@ -13,7 +13,7 @@ from flask_wtf.csrf import CSRFProtect
 
 from app.auth import auth
 from app.auth import auth
-from app.cli import create_database
+from app.cli import create_database, create_logfile
 from app.context_processors import utility_text_processors
 from app.db import db
 from app.db.models import User
@@ -33,7 +33,10 @@ class RequestFormatter(logging.Formatter):
     def format(self, record):
         if has_request_context():
             record.url = request.url
-            record.remote_addr = request.remote_addr
+            record.method = request.method
+            record.path = request.path
+            record.host = request.host.split(':', 1)[0]
+            record.args = dict(request.args)
         else:
             record.url = None
             record.remote_addr = None
@@ -61,25 +64,18 @@ def create_app():
     db.init_app(app)
     # add command function to cli commands
     app.cli.add_command(create_database)
+    app.cli.add_command(create_logfile)
 
     # Deactivate the default flask logger so that log messages don't get duplicated
     app.logger.removeHandler(default_handler)
 
-    # get root directory of project
-    root = os.path.dirname(os.path.abspath(__file__))
-    # set the name of the apps log folder to logs
-    logdir = os.path.join(root, 'logs')
-    # make a directory if it doesn't exist
-    if not os.path.exists(logdir):
-        os.mkdir(logdir)
-    # set name of the log file
-    log_file = os.path.join(logdir, 'info.log')
-
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),'logs/info.log')
     handler = logging.FileHandler(log_file)
     # Create a log file formatter object to create the entry in the log
     formatter = RequestFormatter(
-        '[%(asctime)s] %(remote_addr)s requested %(url)s\n'
-        '%(levelname)s in %(module)s: %(message)s'
+        '[%(asctime)s] %(url)s\n'
+        '%(method)s Host- %(host)s Path- %(path)s Args- %(args)s\n'
+        '%(levelname)s : %(message)s\n'
     )
     # set the formatter for the log entry
     handler.setFormatter(formatter)
@@ -106,19 +102,10 @@ def create_app():
         dt = datetime.datetime.fromtimestamp(now)
         timestamp = rfc3339(dt, utc=True)
 
-        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        host = request.host.split(':', 1)[0]
-        args = dict(request.args)
-
         log_params = [
-            ('method', request.method),
-            ('path', request.path),
             ('status', response.status_code),
             ('duration', duration),
-            ('time', timestamp),
-            ('ip', ip),
-            ('host', host),
-            ('params', args)
+            ('time', timestamp)
         ]
 
         request_id = request.headers.get('X-Request-ID')
@@ -131,7 +118,7 @@ def create_app():
             parts.append(part)
         line = " ".join(parts)
         #this triggers a log entry to be created with whatever is in the line variable
-        app.logger.info('this is the plain message')
+        app.logger.info(log_params)
 
         return response
 

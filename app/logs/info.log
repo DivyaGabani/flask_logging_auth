@@ -1,0 +1,8 @@
+[2022-04-18 19:28:03,248] 172.19.0.1 requested http://127.0.0.1/about
+GET /about 127.0.0.1 {}
+INFO : [('status', 200), ('duration', 0.4), ('time', '2022-04-18T19:28:03Z')]
+
+[2022-04-18 19:33:34,012] http://127.0.0.1/welcome
+GET Host- 127.0.0.1 Path- /welcome Args- {}
+INFO : [('status', 200), ('duration', 0.44), ('time', '2022-04-18T19:33:34Z')]
+
