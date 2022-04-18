@@ -1,4 +1,6 @@
 """This test the homepage"""
+import os
+
 
 def test_request_main_menu_links(client):
     """This makes the index page"""
@@ -15,3 +17,6 @@ def test_auth_pages(client):
     assert response.status_code == 200
     response = client.get("/login")
     assert response.status_code == 200
+
+def test_logfile_exists():
+    assert os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)),'logs/info.log')) == True
